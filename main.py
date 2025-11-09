@@ -176,6 +176,41 @@ async def toggle_user_status(username: str, request: Request):
         logger.error(f"Error toggling status: {e}")
         raise HTTPException(500, str(e))
 
+@app.post("/api/user/{username}/post-now")
+async def manual_post(username: str):
+    """Trigger immediate tweet generation and posting for a user"""
+    logger.info(f"Manual post triggered for @{username}")
+    
+    try:
+        # Fetch user from database
+        result = supabase.table("users").select("*").eq("username", username).single().execute()
+        
+        if not result.data:
+            raise HTTPException(404, "User not found")
+        
+        user = result.data
+        
+        # Check if user is active
+        if not user.get("active", False):
+            raise HTTPException(400, "User automation is disabled")
+        
+        # Generate and post tweet
+        await post_for_user(user)
+        
+        # Update next_post_at to maintain schedule
+        new_next = (datetime.utcnow() + timedelta(days=1)).isoformat()
+        supabase.table("users").update({"next_post_at": new_next}).eq("username", username).execute()
+        
+        logger.info(f"Manual post successful for @{username}")
+        return {"status": "success", "message": f"Tweet posted for @{username}"}
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Manual post failed for @{username}: {e}")
+        raise HTTPException(500, f"Failed to post tweet: {str(e)}")
+
+
 # Update post frequency (you'll need to add a 'frequency' column to your Supabase table)
 @app.patch("/api/user/{username}/frequency")
 async def update_frequency(username: str, request: Request):
