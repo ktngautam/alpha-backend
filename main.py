@@ -9,6 +9,11 @@ from datetime import datetime, timedelta
 import google.generativeai as genai
 import tweepy
 import asyncio
+import logging
+
+# Add at the top after imports
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -52,7 +57,10 @@ async def start_auth():
 
 @app.get("/api/auth/x/callback")
 async def auth_callback(request: Request, code: str = None, state: str = None):
+    logger.info(f"Callback received with code: {code[:20]}...")
+    
     if not code:
+        logger.error("No code provided in callback")
         raise HTTPException(400, "No code provided")
     
     # Exchange code for tokens
@@ -63,27 +71,37 @@ async def auth_callback(request: Request, code: str = None, state: str = None):
         "grant_type": "authorization_code",
         "client_id": X_CLIENT_ID,
         "redirect_uri": REDIRECT_URI,
-        "code_verifier": "challenge",  # PKCE (simple for demo)
+        "code_verifier": "challenge",
     }
     
     async with httpx.AsyncClient() as client:
+        logger.info("Attempting token exchange...")
         resp = await client.post(token_url, data=data, auth=auth)
+        logger.info(f"Token response status: {resp.status_code}")
+        
         if resp.status_code != 200:
+            logger.error(f"Token exchange failed: {resp.text}")
             raise HTTPException(400, f"Token exchange failed: {resp.text}")
         
         tokens = resp.json()
+        logger.info("Token exchange successful")
         access_token = tokens["access_token"]
         refresh_token = tokens["refresh_token"]
         
         # Get user info
         headers = {"Authorization": f"Bearer {access_token}"}
+        logger.info("Fetching user info...")
         user_resp = await client.get("https://api.x.com/2/users/me", headers=headers)
+        logger.info(f"User info response status: {user_resp.status_code}")
+        
         if user_resp.status_code != 200:
+            logger.error(f"Failed to fetch user: {user_resp.text}")
             raise HTTPException(400, "Failed to fetch user")
         
         user_data = user_resp.json()["data"]
         username = user_data["username"]
         x_id = user_data["id"]
+        logger.info(f"User authenticated: @{username}")
         
         # Save to Supabase
         db_data = {
@@ -91,15 +109,27 @@ async def auth_callback(request: Request, code: str = None, state: str = None):
             "username": username,
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "next_post_at": (datetime.utcnow() + timedelta(hours=1)).isoformat(),  # First post soon
+            "next_post_at": (datetime.utcnow() + timedelta(hours=1)).isoformat(),
             "active": True
         }
-        result = supabase.table("users").upsert(db_data).execute()
-        if not result.data:
-            raise HTTPException(500, "Failed to save user")
+        
+        logger.info(f"Attempting to save user to Supabase: {db_data['username']}")
+        try:
+            result = supabase.table("users").upsert(db_data).execute()
+            logger.info(f"Supabase upsert result: {result}")
+            
+            if not result.data:
+                logger.error("Supabase returned no data")
+                raise HTTPException(500, "Failed to save user")
+            
+            logger.info("User saved successfully to Supabase")
+        except Exception as e:
+            logger.error(f"Supabase error: {str(e)}")
+            raise HTTPException(500, f"Database error: {str(e)}")
     
     # Redirect to frontend
-    frontend_url = f"https://alphabot-ashen.vercel.app?activated=true&user={username}"
+    frontend_url = f"https://alphabot-ashen.vercel.app?status=activated&user={username}"
+    logger.info(f"Redirecting to: {frontend_url}")
     return RedirectResponse(frontend_url, status_code=302)
 
 async def generate_tweet(username: str) -> str:
