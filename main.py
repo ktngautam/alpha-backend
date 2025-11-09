@@ -17,11 +17,15 @@ app = FastAPI(title="AlphaBot Backend")
 # CORS (allow Vercel frontend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://alphabot-ashen.vercel.app/"],  # Update with your Vercel URL
+    allow_origins=[
+        "https://alphabot-ashen.vercel.app",  # Your actual Vercel frontend
+        "http://localhost:3000",  # For local development
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Env vars
 X_CLIENT_ID = os.getenv("X_CLIENT_ID")
