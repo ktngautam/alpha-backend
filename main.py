@@ -128,7 +128,7 @@ async def auth_callback(request: Request, code: str = None, state: str = None):
             raise HTTPException(500, f"Database error: {str(e)}")
     
     # Redirect to frontend
-    frontend_url = f"https://alphabot-ashen.vercel.app?status=activated&user={username}"
+    frontend_url = f"https://alphabot-ashen.vercel.app/dashboard?user={username}"
     logger.info(f"Redirecting to: {frontend_url}")
     return RedirectResponse(frontend_url, status_code=302)
 
@@ -150,6 +150,45 @@ async def post_for_user(user: dict):
         print(f"Error: {e}")
         # Refresh token logic (add if needed)
         pass
+
+# Get user data
+@app.get("/api/user/{username}")
+async def get_user(username: str):
+    try:
+        result = supabase.table("users").select("*").eq("username", username).single().execute()
+        if not result.data:
+            raise HTTPException(404, "User not found")
+        return result.data
+    except Exception as e:
+        logger.error(f"Error fetching user: {e}")
+        raise HTTPException(500, str(e))
+
+# Toggle active status
+@app.patch("/api/user/{username}/toggle")
+async def toggle_user_status(username: str, request: Request):
+    body = await request.json()
+    active = body.get("active")
+    
+    try:
+        result = supabase.table("users").update({"active": active}).eq("username", username).execute()
+        return {"status": "success", "active": active}
+    except Exception as e:
+        logger.error(f"Error toggling status: {e}")
+        raise HTTPException(500, str(e))
+
+# Update post frequency (you'll need to add a 'frequency' column to your Supabase table)
+@app.patch("/api/user/{username}/frequency")
+async def update_frequency(username: str, request: Request):
+    body = await request.json()
+    frequency = body.get("frequency", 1)
+    
+    try:
+        result = supabase.table("users").update({"post_frequency": frequency}).eq("username", username).execute()
+        return {"status": "success", "frequency": frequency}
+    except Exception as e:
+        logger.error(f"Error updating frequency: {e}")
+        raise HTTPException(500, str(e))
+
 
 @app.get("/cron/daily")
 async def daily_cron():
