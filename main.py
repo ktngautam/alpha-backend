@@ -30,7 +30,7 @@ app.add_middleware(
 # Env vars
 X_CLIENT_ID = os.getenv("X_CLIENT_ID")
 X_CLIENT_SECRET = os.getenv("X_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI", "https://alphabot-ashen.vercel.app/api/auth/x/callback")
+REDIRECT_URI = os.getenv("REDIRECT_URI", "https://alpha-backend-production.up.railway.app/api/auth/x/callback")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # Use service_role key for backend
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
