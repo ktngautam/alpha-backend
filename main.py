@@ -115,7 +115,7 @@ async def auth_callback(request: Request, code: str = None, state: str = None):
         
         logger.info(f"Attempting to save user to Supabase: {db_data['username']}")
         try:
-            result = supabase.table("users").upsert(db_data).execute()
+            result = supabase.table("users").upsert(db_data, on_conflict="x_id").execute()
             logger.info(f"Supabase upsert result: {result}")
             
             if not result.data:
