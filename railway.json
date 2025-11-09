@@ -1,5 +1,5 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
+  "$schema": "alpha-backend-production.up.railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS"
   },
@@ -12,7 +12,7 @@
     "jobs": [
       {
         "schedule": "0 9 * * *",
-        "command": "curl https://your-backend.up.railway.app/cron/daily"
+        "command": "curl alpha-backend-production.up.railway.app/cron/daily"
       }
     ]
   }
