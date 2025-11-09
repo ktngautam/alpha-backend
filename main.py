@@ -3,11 +3,14 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import os
+from dotenv import load_dotenv 
 from supabase import create_client, Client
 from datetime import datetime, timedelta
 import google.generativeai as genai
 import tweepy
 import asyncio
+
+load_dotenv()
 
 app = FastAPI(title="AlphaBot Backend")
 
